@@ -213,8 +213,9 @@ export function useLiteBriteGPU({
       paramsView.setFloat32(12, glowIntensity, true);
       device.queue.writeBuffer(paramsBuffer, 0, paramsData);
 
-      // Update board state
-      device.queue.writeBuffer(boardStateBuffer, 0, boardStateRef.current.buffer as ArrayBuffer);
+      // Update board state - create a copy to ensure we have a proper ArrayBuffer
+      const boardData = new Uint32Array(boardStateRef.current);
+      device.queue.writeBuffer(boardStateBuffer, 0, boardData);
 
       // Dispatch compute shader
       const commandEncoder = device.createCommandEncoder();

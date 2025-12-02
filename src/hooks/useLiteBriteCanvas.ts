@@ -17,10 +17,18 @@ export interface UseLiteBriteCanvasResult {
   getBoardState: () => Uint32Array;
 }
 
-// Get color by id
+// Get color by id - returns hex color string
 function getColorById(colorIndex: number): string {
   const color = COLORS.find(c => c.id === colorIndex);
   return color ? color.hex : '#000000';
+}
+
+// Convert hex color to rgba with specified alpha (0-1)
+function hexToRgba(hex: string, alpha: number): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
 export function useLiteBriteCanvas({
@@ -79,7 +87,7 @@ export function useLiteBriteCanvas({
               centerX, centerY, pegRadius * 1.8
             );
             gradient.addColorStop(0, color);
-            gradient.addColorStop(0.5, color + '80');
+            gradient.addColorStop(0.5, hexToRgba(color, 0.5));
             gradient.addColorStop(1, 'transparent');
 
             ctx.beginPath();
