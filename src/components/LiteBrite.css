@@ -90,6 +90,19 @@
   animation: pulse 1.5s ease-in-out infinite;
 }
 
+.litebrite-loading-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  color: #fff;
+  font-size: 1.2rem;
+}
+
+.litebrite-loading-screen span {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
 @keyframes pulse {
   0%, 100% { opacity: 0.5; }
   50% { opacity: 1; }
