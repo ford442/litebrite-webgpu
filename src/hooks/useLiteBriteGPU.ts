@@ -15,6 +15,7 @@ export interface UseLiteBriteGPUResult {
   isReady: boolean;
   error: string | null;
   setPixel: (x: number, y: number, colorIndex: number) => void;
+  setBoard: (data: Uint32Array) => void;
   clearBoard: () => void;
   getBoardState: () => Uint32Array;
 }
@@ -258,10 +259,17 @@ export function useLiteBriteGPU({
   }, [isReady, pixelWidth, pixelHeight, glowIntensity]);
 
   const setPixel = useCallback((x: number, y: number, colorIndex: number) => {
+    // console.log(`GPU setPixel: ${x}, ${y}, ${colorIndex}`); // Debug
     if (x >= 0 && x < boardWidth && y >= 0 && y < boardHeight) {
       boardStateRef.current[y * boardWidth + x] = colorIndex;
     }
   }, [boardWidth, boardHeight]);
+
+  const setBoard = useCallback((data: Uint32Array) => {
+    if (data.length === boardStateRef.current.length) {
+      boardStateRef.current.set(data);
+    }
+  }, []);
 
   const clearBoard = useCallback(() => {
     boardStateRef.current.fill(0);
@@ -277,6 +285,7 @@ export function useLiteBriteGPU({
     isReady,
     error,
     setPixel,
+    setBoard,
     clearBoard,
     getBoardState,
   };
