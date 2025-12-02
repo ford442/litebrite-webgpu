@@ -39,6 +39,10 @@ export function useLiteBriteGPU({
   const boardStateBufferRef = useRef<GPUBuffer | null>(null);
   const outputBufferRef = useRef<GPUBuffer | null>(null);
   const renderTextureRef = useRef<GPUTexture | null>(null);
+  const canvasFormatRef = useRef<GPUTextureFormat>('bgra8unorm');
+  const renderPipelineRef = useRef<GPURenderPipeline | null>(null);
+  const blitBindGroupRef = useRef<GPUBindGroup | null>(null);
+  const samplerRef = useRef<GPUSampler | null>(null);
 
   // Board state (stored in CPU memory for easy modification)
   const boardStateRef = useRef<Uint32Array>(new Uint32Array(boardWidth * boardHeight));
@@ -85,6 +89,7 @@ export function useLiteBriteGPU({
       contextRef.current = context;
 
       const format = navigator.gpu.getPreferredCanvasFormat();
+      canvasFormatRef.current = format;
       context.configure({
         device,
         format,
@@ -161,13 +166,80 @@ export function useLiteBriteGPU({
       });
       bindGroupRef.current = bindGroup;
 
-      // Create render texture
+      // Create render texture with the same format as canvas for copy compatibility
       const renderTexture = device.createTexture({
         size: { width: pixelWidth, height: pixelHeight },
-        format: 'rgba8unorm',
+        format: canvasFormatRef.current,
         usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT,
       });
       renderTextureRef.current = renderTexture;
+
+      // Create sampler for texture sampling
+      const sampler = device.createSampler({
+        magFilter: 'linear',
+        minFilter: 'linear',
+      });
+      samplerRef.current = sampler;
+
+      // Create fullscreen quad shader for blitting texture to canvas
+      const blitShaderCode = `
+        @vertex
+        fn vs_main(@builtin(vertex_index) vertexIndex: u32) -> @builtin(position) vec4<f32> {
+          var pos = array<vec2<f32>, 6>(
+            vec2<f32>(-1.0, -1.0),
+            vec2<f32>(1.0, -1.0),
+            vec2<f32>(-1.0, 1.0),
+            vec2<f32>(-1.0, 1.0),
+            vec2<f32>(1.0, -1.0),
+            vec2<f32>(1.0, 1.0)
+          );
+          return vec4<f32>(pos[vertexIndex], 0.0, 1.0);
+        }
+
+        @group(0) @binding(0) var texSampler: sampler;
+        @group(0) @binding(1) var tex: texture_2d<f32>;
+
+        @fragment
+        fn fs_main(@builtin(position) coord: vec4<f32>) -> @location(0) vec4<f32> {
+          let texSize = textureDimensions(tex);
+          let uv = coord.xy / vec2<f32>(f32(texSize.x), f32(texSize.y));
+          return textureSample(tex, texSampler, uv);
+        }
+      `;
+
+      const blitShaderModule = device.createShaderModule({
+        code: blitShaderCode,
+      });
+
+      // Create render pipeline for blitting
+      const renderPipeline = device.createRenderPipeline({
+        layout: 'auto',
+        vertex: {
+          module: blitShaderModule,
+          entryPoint: 'vs_main',
+        },
+        fragment: {
+          module: blitShaderModule,
+          entryPoint: 'fs_main',
+          targets: [{
+            format: format,
+          }],
+        },
+        primitive: {
+          topology: 'triangle-list',
+        },
+      });
+      renderPipelineRef.current = renderPipeline;
+
+      // Create bind group for blitting
+      const blitBindGroup = device.createBindGroup({
+        layout: renderPipeline.getBindGroupLayout(0),
+        entries: [
+          { binding: 0, resource: sampler },
+          { binding: 1, resource: renderTexture.createView() },
+        ],
+      });
+      blitBindGroupRef.current = blitBindGroup;
 
       setIsReady(true);
     };
@@ -198,8 +270,10 @@ export function useLiteBriteGPU({
       const boardStateBuffer = boardStateBufferRef.current;
       const outputBuffer = outputBufferRef.current;
       const renderTexture = renderTextureRef.current;
+      const renderPipeline = renderPipelineRef.current;
+      const blitBindGroup = blitBindGroupRef.current;
 
-      if (!device || !context || !pipeline || !bindGroup || !paramsBuffer || !boardStateBuffer || !outputBuffer || !renderTexture) {
+      if (!device || !context || !pipeline || !bindGroup || !paramsBuffer || !boardStateBuffer || !outputBuffer || !renderTexture || !renderPipeline || !blitBindGroup) {
         return;
       }
 
@@ -236,13 +310,21 @@ export function useLiteBriteGPU({
         { width: pixelWidth, height: pixelHeight }
       );
 
-      // Copy texture to canvas
+      // Render texture to canvas using a fullscreen quad
       const canvasTexture = context.getCurrentTexture();
-      commandEncoder.copyTextureToTexture(
-        { texture: renderTexture },
-        { texture: canvasTexture },
-        { width: pixelWidth, height: pixelHeight }
-      );
+      const renderPassEncoder = commandEncoder.beginRenderPass({
+        colorAttachments: [{
+          view: canvasTexture.createView(),
+          loadOp: 'clear',
+          storeOp: 'store',
+          clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
+        }],
+      });
+
+      renderPassEncoder.setPipeline(renderPipeline);
+      renderPassEncoder.setBindGroup(0, blitBindGroup);
+      renderPassEncoder.draw(6, 1, 0, 0);
+      renderPassEncoder.end();
 
       device.queue.submit([commandEncoder.finish()]);
 
