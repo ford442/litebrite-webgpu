@@ -4,7 +4,7 @@
   align-items: center;
   min-height: 100vh;
   padding: 20px;
-  background: linear-gradient(135deg, #1a1a2e 0%, #0f0f23 100%);
+  background: radial-gradient(circle at center, #1a1a2e 0%, #050510 100%);
 }
 
 .litebrite-header {
@@ -52,17 +52,24 @@
     0 10px 40px rgba(0, 0, 0, 0.5),
     inset 0 1px 1px rgba(255, 255, 255, 0.1),
     inset 0 -1px 1px rgba(0, 0, 0, 0.3);
-  border: 3px solid #333;
+  border: 4px solid #333;
 }
 
 .litebrite-screen {
   position: relative;
-  border-radius: 10px;
+  border-radius: 4px;
   overflow: hidden;
-  background: #000;
+  background-color: #000;
+  /* Mesh pattern simulation */
+  background-image:
+    radial-gradient(#111 20%, transparent 20%),
+    radial-gradient(#111 20%, transparent 20%);
+  background-position: 0 0, 8px 8px;
+  background-size: 16px 16px;
+
   box-shadow: 
     inset 0 0 30px rgba(0, 0, 0, 0.8),
-    0 0 20px rgba(255, 200, 100, 0.1);
+    0 0 20px rgba(255, 200, 100, 0.05);
 }
 
 .litebrite-canvas {
@@ -70,6 +77,9 @@
   cursor: crosshair;
   touch-action: none;
   image-rendering: pixelated;
+  /* Ensure canvas sits on top of background but allows transparency if needed */
+  position: relative;
+  z-index: 1;
 }
 
 .litebrite-loading {
@@ -84,6 +94,7 @@
   background: rgba(0, 0, 0, 0.8);
   color: #fff;
   font-size: 1.2rem;
+  z-index: 10;
 }
 
 .litebrite-loading span {
@@ -116,32 +127,44 @@
   margin-top: 20px;
 }
 
-.litebrite-clear-btn {
-  padding: 12px 30px;
-  font-size: 1rem;
+.litebrite-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.litebrite-btn {
+  padding: 10px 20px;
+  font-size: 0.9rem;
   font-weight: bold;
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: #fff;
-  background: linear-gradient(145deg, #e74c3c, #c0392b);
   border: none;
   border-radius: 25px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
   box-shadow: 
-    0 4px 15px rgba(231, 76, 60, 0.3),
+    0 4px 10px rgba(0, 0, 0, 0.3),
     inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
-.litebrite-clear-btn:hover {
+.litebrite-btn:hover {
   transform: translateY(-2px);
   box-shadow: 
-    0 6px 20px rgba(231, 76, 60, 0.4),
+    0 6px 15px rgba(0, 0, 0, 0.4),
     inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
-.litebrite-clear-btn:active {
+.litebrite-btn:active {
   transform: translateY(0);
+}
+
+.clear-btn {
+  background: linear-gradient(145deg, #e74c3c, #c0392b);
+}
+
+.upload-btn {
+  background: linear-gradient(145deg, #3498db, #2980b9);
 }
 
 .litebrite-instructions {
@@ -153,28 +176,6 @@
 
 .litebrite-instructions p {
   margin: 5px 0;
-}
-
-.litebrite-error {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  padding: 20px;
-  background: #1a1a2e;
-  color: #fff;
-  text-align: center;
-}
-
-.litebrite-error h2 {
-  color: #e74c3c;
-  margin-bottom: 10px;
-}
-
-.litebrite-error p {
-  color: #888;
-  max-width: 400px;
 }
 
 /* Responsive adjustments */
@@ -190,5 +191,14 @@
   .litebrite-canvas {
     max-width: 100%;
     height: auto;
+  }
+
+  .litebrite-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .litebrite-btn {
+    width: 100%;
   }
 }

@@ -13,6 +13,7 @@ export interface UseLiteBriteCanvasResult {
   canvasRef: React.RefObject<HTMLCanvasElement | null>;
   isReady: boolean;
   setPixel: (x: number, y: number, colorIndex: number) => void;
+  setBoard: (data: Uint32Array) => void;
   clearBoard: () => void;
   getBoardState: () => Uint32Array;
 }
@@ -133,10 +134,17 @@ export function useLiteBriteCanvas({
   }, [boardWidth, boardHeight, pixelWidth, pixelHeight, glowIntensity]);
 
   const setPixel = useCallback((x: number, y: number, colorIndex: number) => {
+    // console.log(`Canvas setPixel: ${x}, ${y}, ${colorIndex}`); // Debug
     if (x >= 0 && x < boardWidth && y >= 0 && y < boardHeight) {
       boardStateRef.current[y * boardWidth + x] = colorIndex;
     }
   }, [boardWidth, boardHeight]);
+
+  const setBoard = useCallback((data: Uint32Array) => {
+    if (data.length === boardStateRef.current.length) {
+      boardStateRef.current.set(data);
+    }
+  }, []);
 
   const clearBoard = useCallback(() => {
     boardStateRef.current.fill(0);
@@ -150,6 +158,7 @@ export function useLiteBriteCanvas({
     canvasRef,
     isReady: true,
     setPixel,
+    setBoard,
     clearBoard,
     getBoardState,
   };
