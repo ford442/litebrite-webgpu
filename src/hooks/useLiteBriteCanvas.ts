@@ -1,7 +1,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { COLORS } from '../constants/colors';
 
-const PEG_SPACING = 16;
+const PEG_SPACING = 32;
 
 export interface UseLiteBriteCanvasOptions {
   boardWidth: number;
