@@ -339,7 +339,7 @@ function LiteBriteUI({
 }
 
 export function LiteBrite() {
-  const [selectedColor, setSelectedColor] = useState(1); // Default to red
+  const [selectedColor, setSelectedColor] = useState(9); // Default to red (first color in palette)
   const [useWebGPU, setUseWebGPU] = useState<boolean | null>(null);
 
   // Check for WebGPU support on mount
