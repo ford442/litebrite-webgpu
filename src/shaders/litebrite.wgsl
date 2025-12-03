@@ -107,8 +107,8 @@ fn main(@builtin(global_invocation_id) globalId: vec3<u32>) {
     var accumulatedLight = vec3<f32>(0.0, 0.0, 0.0);
 
     // Loop through 3x3 neighbors
-    for (let i = -1; i <= 1; i++) {
-        for (let j = -1; j <= 1; j++) {
+    for (var i = -1; i <= 1; i++) {
+        for (var j = -1; j <= 1; j++) {
             let neighborPegX = i32(currentPegX) + i;
             let neighborPegY = i32(currentPegY) + j;
 
