@@ -9,7 +9,7 @@ import './LiteBrite.css';
 // Board dimensions in pegs (original Lite Brite was roughly 18x13)
 const BOARD_WIDTH = 32;
 const BOARD_HEIGHT = 24;
-const PEG_SPACING = 16;
+const PEG_SPACING = 32;
 
 // WebGPU version of the board
 function LiteBriteWebGPU({ selectedColor, onColorSelect }: { selectedColor: number; onColorSelect: (color: number) => void }) {

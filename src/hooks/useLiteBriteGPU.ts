@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import shaderCode from '../shaders/litebrite.wgsl?raw';
 
-const PEG_SPACING = 16;
+const PEG_SPACING = 32;
 
 export interface UseLiteBriteGPUOptions {
   boardWidth: number;
