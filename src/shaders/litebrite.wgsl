@@ -35,7 +35,8 @@ fn packColor(color: vec4<f32>) -> u32 {
     let g = u32(clamp(color.g, 0.0, 1.0) * 255.0);
     let b = u32(clamp(color.b, 0.0, 1.0) * 255.0);
     let a = u32(clamp(color.a, 0.0, 1.0) * 255.0);
-    return (a << 24u) | (b << 16u) | (g << 8u) | r;
+    // Pack as BGRA for the canvas texture format (swapping r and b)
+    return (a << 24u) | (r << 16u) | (g << 8u) | b;
 }
 
 // Simple noise function for background texture
