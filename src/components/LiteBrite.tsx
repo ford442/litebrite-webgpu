@@ -32,25 +32,67 @@ const playPopSound = () => {
   osc.stop(ctx.currentTime + 0.1);
 };
 
-// Helper to calculate grid coordinates for a staggered/diagonal layout
-const getGridCoordinates = (
+/**
+ * Finds the physically closest peg to the mouse cursor on a staggered grid.
+ * This is more robust than simple geometric calculation as it checks neighboring
+ * rows to resolve ambiguity at the boundaries.
+ * @returns The logical {x, y} coordinates of the closest peg.
+ */
+const getClosestPeg = (
   clientX: number,
   clientY: number,
   canvas: HTMLCanvasElement
-): { x: number, y: number } => {
+): { x: number; y: number } => {
   const rect = canvas.getBoundingClientRect();
   const scaleX = canvas.width / rect.width;
   const scaleY = canvas.height / rect.height;
 
+  // 1. Get raw pixel coordinates in the canvas's own resolution
   const px = (clientX - rect.left) * scaleX;
   const py = (clientY - rect.top) * scaleY;
 
-  const y = Math.floor(py / PEG_SPACING);
-  const rowOffset = (y % 2 !== 0) ? (PEG_SPACING / 2) : 0;
-  const x = Math.floor((px - rowOffset) / PEG_SPACING);
+  // 2. Identify the rough logical row the cursor is in (our starting point)
+  const roughRow = Math.floor(py / PEG_SPACING);
 
-  return { x, y };
+  // 3. We will check the rough row, plus the row above and below,
+  //    to find the true closest peg center. This is the key to solving the
+  //    "zigzag" boundary problem between staggered rows.
+  let closestPeg = { x: -1, y: -1 };
+  let minDistanceSq = Infinity; // Use squared distance to avoid costly sqrt
+
+  // Check the relevant rows (usually 3, fewer at top/bottom edges)
+  for (let r = roughRow - 1; r <= roughRow + 1; r++) {
+    // Ensure the row is within board boundaries
+    if (r < 0 || r >= BOARD_HEIGHT) continue;
+
+    // Calculate the horizontal offset for this specific row
+    const rowOffset = (r % 2 !== 0) ? (PEG_SPACING / 2) : 0;
+    
+    // Find the approximate column in this row by finding the nearest grid center
+    const c = Math.round((px - rowOffset - (PEG_SPACING / 2)) / PEG_SPACING);
+
+    // Ensure the column is within board boundaries
+    if (c < 0 || c >= BOARD_WIDTH) continue;
+
+    // Calculate the PHYSICAL center of this candidate peg in pixel space
+    const centerX = c * PEG_SPACING + (PEG_SPACING / 2) + rowOffset;
+    const centerY = r * PEG_SPACING + (PEG_SPACING / 2);
+
+    // Get distance squared (more efficient for comparison)
+    const dx = px - centerX;
+    const dy = py - centerY;
+    const distSq = dx * dx + dy * dy;
+
+    // If this peg is closer than any we've seen so far, record it
+    if (distSq < minDistanceSq) {
+      minDistanceSq = distSq;
+      closestPeg = { x: c, y: r };
+    }
+  }
+
+  return closestPeg;
 };
+
 
 // WebGPU version of the board
 function LiteBriteWebGPU({ selectedColor, onColorSelect }: { selectedColor: number; onColorSelect: (color: number) => void }) {
@@ -76,17 +118,24 @@ function LiteBriteWebGPU({ selectedColor, onColorSelect }: { selectedColor: numb
 
   const handleCanvasClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!canvasRef.current) return;
-    const { x, y } = getGridCoordinates(e.clientX, e.clientY, canvasRef.current);
-    if (x >= 0 && x < BOARD_WIDTH && y >= 0 && y < BOARD_HEIGHT) {
+    
+    // Use the new helper to find the truly closest peg
+    const { x, y } = getClosestPeg(e.clientX, e.clientY, canvasRef.current);
+
+    if (x !== -1 && y !== -1) { // Check for a valid peg
       setPixel(x, y, selectedColor);
-      playPopSound();
+      playPopSound(); 
     }
   }, [canvasRef, setPixel, selectedColor]);
 
   const handleCanvasMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    // Only draw if the left mouse button is held down
     if (e.buttons !== 1 || !canvasRef.current) return;
-    const { x, y } = getGridCoordinates(e.clientX, e.clientY, canvasRef.current);
-    if (x >= 0 && x < BOARD_WIDTH && y >= 0 && y < BOARD_HEIGHT) {
+    
+    const { x, y } = getClosestPeg(e.clientX, e.clientY, canvasRef.current);
+    
+    if (x !== -1 && y !== -1) {
+      // The setPixel function should ideally prevent redundant state updates
       setPixel(x, y, selectedColor);
     }
   }, [canvasRef, setPixel, selectedColor]);
@@ -94,8 +143,8 @@ function LiteBriteWebGPU({ selectedColor, onColorSelect }: { selectedColor: numb
   const handleTouchStart = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
     if (e.cancelable) e.preventDefault();
     if (!canvasRef.current || e.touches.length === 0) return;
-    const { x, y } = getGridCoordinates(e.touches[0].clientX, e.touches[0].clientY, canvasRef.current);
-    if (x >= 0 && x < BOARD_WIDTH && y >= 0 && y < BOARD_HEIGHT) {
+    const { x, y } = getClosestPeg(e.touches[0].clientX, e.touches[0].clientY, canvasRef.current);
+    if (x !== -1 && y !== -1) {
       setPixel(x, y, selectedColor);
       playPopSound();
     }
@@ -104,8 +153,8 @@ function LiteBriteWebGPU({ selectedColor, onColorSelect }: { selectedColor: numb
   const handleTouchMove = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
     if (e.cancelable) e.preventDefault();
     if (!canvasRef.current || e.touches.length === 0) return;
-    const { x, y } = getGridCoordinates(e.touches[0].clientX, e.touches[0].clientY, canvasRef.current);
-    if (x >= 0 && x < BOARD_WIDTH && y >= 0 && y < BOARD_HEIGHT) {
+    const { x, y } = getClosestPeg(e.touches[0].clientX, e.touches[0].clientY, canvasRef.current);
+    if (x !== -1 && y !== -1) {
       setPixel(x, y, selectedColor);
     }
   }, [canvasRef, setPixel, selectedColor]);
@@ -163,8 +212,8 @@ function LiteBriteCanvas2D({ selectedColor, onColorSelect }: { selectedColor: nu
 
   const handleCanvasClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!canvasRef.current) return;
-    const { x, y } = getGridCoordinates(e.clientX, e.clientY, canvasRef.current);
-    if (x >= 0 && x < BOARD_WIDTH && y >= 0 && y < BOARD_HEIGHT) {
+    const { x, y } = getClosestPeg(e.clientX, e.clientY, canvasRef.current);
+    if (x !== -1 && y !== -1) {
       setPixel(x, y, selectedColor);
       playPopSound();
     }
@@ -172,8 +221,8 @@ function LiteBriteCanvas2D({ selectedColor, onColorSelect }: { selectedColor: nu
 
   const handleCanvasMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     if (e.buttons !== 1 || !canvasRef.current) return;
-    const { x, y } = getGridCoordinates(e.clientX, e.clientY, canvasRef.current);
-    if (x >= 0 && x < BOARD_WIDTH && y >= 0 && y < BOARD_HEIGHT) {
+    const { x, y } = getClosestPeg(e.clientX, e.clientY, canvasRef.current);
+    if (x !== -1 && y !== -1) {
       setPixel(x, y, selectedColor);
     }
   }, [canvasRef, setPixel, selectedColor]);
@@ -181,8 +230,8 @@ function LiteBriteCanvas2D({ selectedColor, onColorSelect }: { selectedColor: nu
   const handleTouchStart = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
     if (e.cancelable) e.preventDefault();
     if (!canvasRef.current || e.touches.length === 0) return;
-    const { x, y } = getGridCoordinates(e.touches[0].clientX, e.touches[0].clientY, canvasRef.current);
-    if (x >= 0 && x < BOARD_WIDTH && y >= 0 && y < BOARD_HEIGHT) {
+    const { x, y } = getClosestPeg(e.touches[0].clientX, e.touches[0].clientY, canvasRef.current);
+    if (x !== -1 && y !== -1) {
       setPixel(x, y, selectedColor);
       playPopSound();
     }
@@ -191,8 +240,8 @@ function LiteBriteCanvas2D({ selectedColor, onColorSelect }: { selectedColor: nu
   const handleTouchMove = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
     if (e.cancelable) e.preventDefault();
     if (!canvasRef.current || e.touches.length === 0) return;
-    const { x, y } = getGridCoordinates(e.touches[0].clientX, e.touches[0].clientY, canvasRef.current);
-    if (x >= 0 && x < BOARD_WIDTH && y >= 0 && y < BOARD_HEIGHT) {
+    const { x, y } = getClosestPeg(e.touches[0].clientX, e.touches[0].clientY, canvasRef.current);
+    if (x !== -1 && y !== -1) {
       setPixel(x, y, selectedColor);
     }
   }, [canvasRef, setPixel, selectedColor]);
