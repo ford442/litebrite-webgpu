@@ -16,16 +16,16 @@ struct Params {
 // Updated color mapping to match new palette with Red and Yellow additions
 fn getColor(colorIndex: u32) -> vec4<f32> {
     switch colorIndex {
-        case 9u: { return vec4<f32>(1.0, 0.0, 0.0, 1.0); }   // Red (New)
-        case 5u: { return vec4<f32>(1.0, 0.5, 0.1, 1.0); }   // Orange
-        case 10u: { return vec4<f32>(1.0, 1.0, 0.0, 1.0); }  // Yellow (New)
+        case 1u: { return vec4<f32>(1.0, 0.0, 0.0, 1.0); }   // Red
+        case 2u: { return vec4<f32>(1.0, 0.5, 0.1, 1.0); }   // Orange
+        case 3u: { return vec4<f32>(1.0, 1.0, 0.0, 1.0); }  // Yellow
         case 4u: { return vec4<f32>(0.2, 1.0, 0.2, 1.0); }   // Green
-        case 3u: { return vec4<f32>(0.0, 1.0, 1.0, 1.0); }   // Cyan
-        case 2u: { return vec4<f32>(0.2, 0.8, 1.0, 1.0); }   // Light Blue
-        case 1u: { return vec4<f32>(0.2, 0.5, 1.0, 1.0); }   // Blue
-        case 6u: { return vec4<f32>(0.6, 0.2, 1.0, 1.0); }   // Purple
-        case 8u: { return vec4<f32>(1.0, 0.2, 0.8, 1.0); }   // Pink
-        case 7u: { return vec4<f32>(1.0, 1.0, 1.0, 1.0); }   // White
+        case 5u: { return vec4<f32>(0.0, 1.0, 1.0, 1.0); }   // Cyan
+        case 6u: { return vec4<f32>(0.2, 0.8, 1.0, 1.0); }   // Light Blue
+        case 7u: { return vec4<f32>(0.2, 0.5, 1.0, 1.0); }   // Blue
+        case 8u: { return vec4<f32>(0.6, 0.2, 1.0, 1.0); }   // Purple
+        case 9u: { return vec4<f32>(1.0, 0.2, 0.8, 1.0); }   // Pink
+        case 10u: { return vec4<f32>(1.0, 1.0, 1.0, 1.0); }   // White
         default: { return vec4<f32>(0.0, 0.0, 0.0, 0.0); }   // Empty (no peg)
     }
 }

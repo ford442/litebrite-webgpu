@@ -1,15 +1,15 @@
-// Lite Brite original colors
+// Lite Brite colors in a specific order
 export const COLORS = [
-  { id: 9, name: 'Red', hex: '#ff0000' }, // New Red
-  { id: 5, name: 'Orange', hex: '#ff8019' }, // Was Blue -> Orange
-  { id: 10, name: 'Yellow', hex: '#ffff00' }, // New Yellow
-  { id: 4, name: 'Green', hex: '#33ff33' }, // Green is correct
-  { id: 3, name: 'Cyan', hex: '#00ffff' }, // Was Yellow -> Cyan
-  { id: 2, name: 'Light Blue', hex: '#33ccff' }, // Was Orange -> Light Blue
-  { id: 1, name: 'Blue', hex: '#3380ff' }, // Was Red -> Blue
-  { id: 6, name: 'Purple', hex: '#9933ff' }, // Was Pink -> Purple
-  { id: 8, name: 'Pink', hex: '#ff33cc' }, // Was Purple -> Pink
-  { id: 7, name: 'White', hex: '#ffffff' }, // White is correct
+  { id: 1, name: 'Red', hex: '#ff0000' },
+  { id: 2, name: 'Orange', hex: '#ff8019' },
+  { id: 3, name: 'Yellow', hex: '#ffff00' },
+  { id: 4, name: 'Green', hex: '#33ff33' },
+  { id: 5, name: 'Cyan', hex: '#00ffff' },
+  { id: 6, name: 'Light Blue', hex: '#33ccff' },
+  { id: 7, name: 'Blue', hex: '#3380ff' },
+  { id: 8, name: 'Purple', hex: '#9933ff' },
+  { id: 9, name: 'Pink', hex: '#ff33cc' },
+  { id: 10, name: 'White', hex: '#ffffff' },
   { id: 0, name: 'Eraser', hex: '#1a1a1a' },
 ];
 
