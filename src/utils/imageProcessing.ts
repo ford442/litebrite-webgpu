@@ -1,5 +1,7 @@
 import { COLORS } from '../constants/colors';
 
+const PEG_SPACING = 32;
+
 // Helper to convert hex to RGB
 function hexToRgb(hex: string): { r: number; g: number; b: number } {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -24,18 +26,14 @@ function findClosestColorIndex(r: number, g: number, b: number): number {
   let minDistance = Infinity;
   let closestIndex = 0; // Eraser/Empty
 
-  // Threshold to determine if a pixel is "black" or empty
-  // If a pixel is very dark, we treat it as empty (color 0)
   if (r < 30 && g < 30 && b < 30) {
     return 0;
   }
 
   COLORS.forEach(color => {
-    if (color.id === 0) return; // Skip eraser during distance check
-
+    if (color.id === 0) return;
     const rgb = hexToRgb(color.hex);
     const distance = getColorDistance({ r, g, b }, rgb);
-
     if (distance < minDistance) {
       minDistance = distance;
       closestIndex = color.id;
@@ -58,8 +56,10 @@ export async function processImageToBoard(
       URL.revokeObjectURL(url);
 
       const canvas = document.createElement('canvas');
-      canvas.width = boardWidth;
-      canvas.height = boardHeight;
+      const canvasWidth = boardWidth * PEG_SPACING;
+      const canvasHeight = boardHeight * PEG_SPACING;
+      canvas.width = canvasWidth;
+      canvas.height = canvasHeight;
       const ctx = canvas.getContext('2d');
 
       if (!ctx) {
@@ -67,39 +67,38 @@ export async function processImageToBoard(
         return;
       }
 
-      // Draw image to canvas, scaling it to board dimensions
-      // Use 'contain' logic to preserve aspect ratio
-      const scale = Math.min(boardWidth / img.width, boardHeight / img.height);
+      const scale = Math.min(canvasWidth / img.width, canvasHeight / img.height);
       const w = img.width * scale;
       const h = img.height * scale;
-      const x = (boardWidth - w) / 2;
-      const y = (boardHeight - h) / 2;
+      const x = (canvasWidth - w) / 2;
+      const y = (canvasHeight - h) / 2;
 
       ctx.fillStyle = '#000000';
-      ctx.fillRect(0, 0, boardWidth, boardHeight);
+      ctx.fillRect(0, 0, canvasWidth, canvasHeight);
       ctx.drawImage(img, x, y, w, h);
 
-      const imageData = ctx.getImageData(0, 0, boardWidth, boardHeight);
+      const imageData = ctx.getImageData(0, 0, canvasWidth, canvasHeight);
       const pixels = imageData.data;
-      const result = new Uint32Array(boardWidth * boardHeight);
+      const boardData = new Uint32Array(boardWidth * boardHeight);
 
-      for (let i = 0; i < pixels.length; i += 4) {
-        const r = pixels[i];
-        const g = pixels[i + 1];
-        const b = pixels[i + 2];
-        const a = pixels[i + 3];
+      for (let y = 0; y < boardHeight; y++) {
+        for (let x = 0; x < boardWidth; x++) {
+          const rowShift = (y % 2 !== 0) ? (PEG_SPACING / 2) : 0;
+          const centerX = Math.floor(x * PEG_SPACING + (PEG_SPACING / 2) + rowShift);
+          const centerY = Math.floor(y * PEG_SPACING + (PEG_SPACING / 2));
+          const pixelIndex = (centerY * canvasWidth + centerX) * 4;
 
-        const pixelIndex = i / 4;
+          if (pixelIndex < 0 || pixelIndex >= pixels.length) continue;
 
-        // If transparent, use eraser
-        if (a < 128) {
-          result[pixelIndex] = 0;
-        } else {
-          result[pixelIndex] = findClosestColorIndex(r, g, b);
+          const r = pixels[pixelIndex];
+          const g = pixels[pixelIndex + 1];
+          const b = pixels[pixelIndex + 2];
+          
+          boardData[y * boardWidth + x] = findClosestColorIndex(r, g, b);
         }
       }
 
-      resolve(result);
+      resolve(boardData);
     };
 
     img.onerror = () => {

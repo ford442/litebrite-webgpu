@@ -6,56 +6,64 @@ import { ColorPalette } from './ColorPalette';
 import { processImageToBoard } from '../utils/imageProcessing';
 import './LiteBrite.css';
 
-// Board dimensions in pegs (original Lite Brite was roughly 18x13)
+// Board dimensions in pegs
 const BOARD_WIDTH = 32;
 const BOARD_HEIGHT = 24;
 const PEG_SPACING = 32;
 
 // Helper function to play a synthesized 'pop' sound
 const playPopSound = () => {
-  // Check for browser compatibility
   const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
   if (!AudioContext) {
     console.warn("Web Audio API is not supported in this browser.");
     return;
   }
-
   const ctx = new AudioContext();
   const osc = ctx.createOscillator();
   const gain = ctx.createGain();
-
   osc.connect(gain);
   gain.connect(ctx.destination);
-
-  // A short, sharp pitch drop simulates a "plastic click" sound
-  osc.type = 'triangle'; // Triangle or sine waves sound softer than square
+  osc.type = 'triangle';
   osc.frequency.setValueAtTime(800, ctx.currentTime);
   osc.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.1);
-
   gain.gain.setValueAtTime(0.1, ctx.currentTime);
   gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
-
   osc.start(ctx.currentTime);
   osc.stop(ctx.currentTime + 0.1);
+};
+
+// Helper to calculate grid coordinates for a staggered/diagonal layout
+const getGridCoordinates = (
+  clientX: number,
+  clientY: number,
+  canvas: HTMLCanvasElement
+): { x: number, y: number } => {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+
+  const px = (clientX - rect.left) * scaleX;
+  const py = (clientY - rect.top) * scaleY;
+
+  const y = Math.floor(py / PEG_SPACING);
+  const rowOffset = (y % 2 !== 0) ? (PEG_SPACING / 2) : 0;
+  const x = Math.floor((px - rowOffset) / PEG_SPACING);
+
+  return { x, y };
 };
 
 // WebGPU version of the board
 function LiteBriteWebGPU({ selectedColor, onColorSelect }: { selectedColor: number; onColorSelect: (color: number) => void }) {
   const [glowIntensity, setGlowIntensity] = useState(0);
 
-  // Startup animation
   useEffect(() => {
     const startTime = performance.now();
     const animate = () => {
       const elapsed = performance.now() - startTime;
       const progress = Math.min(elapsed / 1500, 1);
-      // Ease out cubic
       const value = 1 - Math.pow(1 - progress, 3);
       setGlowIntensity(value * 1.3);
-
-      if (progress < 1) {
-        requestAnimationFrame(animate);
-      }
+      if (progress < 1) requestAnimationFrame(animate);
     };
     requestAnimationFrame(animate);
   }, []);
@@ -67,16 +75,8 @@ function LiteBriteWebGPU({ selectedColor, onColorSelect }: { selectedColor: numb
   });
 
   const handleCanvasClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    const x = Math.floor(((e.clientX - rect.left) * scaleX) / PEG_SPACING);
-    const y = Math.floor(((e.clientY - rect.top) * scaleY) / PEG_SPACING);
-
-    // console.log('Click:', x, y, selectedColor); // Debug
-
+    if (!canvasRef.current) return;
+    const { x, y } = getGridCoordinates(e.clientX, e.clientY, canvasRef.current);
     if (x >= 0 && x < BOARD_WIDTH && y >= 0 && y < BOARD_HEIGHT) {
       setPixel(x, y, selectedColor);
       playPopSound();
@@ -84,30 +84,17 @@ function LiteBriteWebGPU({ selectedColor, onColorSelect }: { selectedColor: numb
   }, [canvasRef, setPixel, selectedColor]);
 
   const handleCanvasMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (e.buttons !== 1) return;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    const x = Math.floor(((e.clientX - rect.left) * scaleX) / PEG_SPACING);
-    const y = Math.floor(((e.clientY - rect.top) * scaleY) / PEG_SPACING);
+    if (e.buttons !== 1 || !canvasRef.current) return;
+    const { x, y } = getGridCoordinates(e.clientX, e.clientY, canvasRef.current);
     if (x >= 0 && x < BOARD_WIDTH && y >= 0 && y < BOARD_HEIGHT) {
       setPixel(x, y, selectedColor);
     }
   }, [canvasRef, setPixel, selectedColor]);
 
   const handleTouchStart = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
-    // e.preventDefault(); // Removing preventDefault to allow scrolling if needed, or handle carefully
     if (e.cancelable) e.preventDefault();
-
-    const canvas = canvasRef.current;
-    if (!canvas || e.touches.length === 0) return;
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    const x = Math.floor(((e.touches[0].clientX - rect.left) * scaleX) / PEG_SPACING);
-    const y = Math.floor(((e.touches[0].clientY - rect.top) * scaleY) / PEG_SPACING);
+    if (!canvasRef.current || e.touches.length === 0) return;
+    const { x, y } = getGridCoordinates(e.touches[0].clientX, e.touches[0].clientY, canvasRef.current);
     if (x >= 0 && x < BOARD_WIDTH && y >= 0 && y < BOARD_HEIGHT) {
       setPixel(x, y, selectedColor);
       playPopSound();
@@ -116,21 +103,14 @@ function LiteBriteWebGPU({ selectedColor, onColorSelect }: { selectedColor: numb
 
   const handleTouchMove = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
     if (e.cancelable) e.preventDefault();
-    const canvas = canvasRef.current;
-    if (!canvas || e.touches.length === 0) return;
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    const x = Math.floor(((e.touches[0].clientX - rect.left) * scaleX) / PEG_SPACING);
-    const y = Math.floor(((e.touches[0].clientY - rect.top) * scaleY) / PEG_SPACING);
+    if (!canvasRef.current || e.touches.length === 0) return;
+    const { x, y } = getGridCoordinates(e.touches[0].clientX, e.touches[0].clientY, canvasRef.current);
     if (x >= 0 && x < BOARD_WIDTH && y >= 0 && y < BOARD_HEIGHT) {
       setPixel(x, y, selectedColor);
     }
   }, [canvasRef, setPixel, selectedColor]);
 
-  const handleClear = useCallback(() => {
-    clearBoard();
-  }, [clearBoard]);
+  const handleClear = useCallback(() => clearBoard(), [clearBoard]);
 
   const handleImageUpload = useCallback(async (file: File) => {
     try {
@@ -163,7 +143,6 @@ function LiteBriteWebGPU({ selectedColor, onColorSelect }: { selectedColor: numb
 function LiteBriteCanvas2D({ selectedColor, onColorSelect }: { selectedColor: number; onColorSelect: (color: number) => void }) {
   const [glowIntensity, setGlowIntensity] = useState(0);
 
-  // Startup animation
   useEffect(() => {
     const startTime = performance.now();
     const animate = () => {
@@ -171,10 +150,7 @@ function LiteBriteCanvas2D({ selectedColor, onColorSelect }: { selectedColor: nu
       const progress = Math.min(elapsed / 1500, 1);
       const value = 1 - Math.pow(1 - progress, 3);
       setGlowIntensity(value * 1.3);
-
-      if (progress < 1) {
-        requestAnimationFrame(animate);
-      }
+      if (progress < 1) requestAnimationFrame(animate);
     };
     requestAnimationFrame(animate);
   }, []);
@@ -186,13 +162,8 @@ function LiteBriteCanvas2D({ selectedColor, onColorSelect }: { selectedColor: nu
   });
 
   const handleCanvasClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    const x = Math.floor(((e.clientX - rect.left) * scaleX) / PEG_SPACING);
-    const y = Math.floor(((e.clientY - rect.top) * scaleY) / PEG_SPACING);
+    if (!canvasRef.current) return;
+    const { x, y } = getGridCoordinates(e.clientX, e.clientY, canvasRef.current);
     if (x >= 0 && x < BOARD_WIDTH && y >= 0 && y < BOARD_HEIGHT) {
       setPixel(x, y, selectedColor);
       playPopSound();
@@ -200,14 +171,8 @@ function LiteBriteCanvas2D({ selectedColor, onColorSelect }: { selectedColor: nu
   }, [canvasRef, setPixel, selectedColor]);
 
   const handleCanvasMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (e.buttons !== 1) return;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    const x = Math.floor(((e.clientX - rect.left) * scaleX) / PEG_SPACING);
-    const y = Math.floor(((e.clientY - rect.top) * scaleY) / PEG_SPACING);
+    if (e.buttons !== 1 || !canvasRef.current) return;
+    const { x, y } = getGridCoordinates(e.clientX, e.clientY, canvasRef.current);
     if (x >= 0 && x < BOARD_WIDTH && y >= 0 && y < BOARD_HEIGHT) {
       setPixel(x, y, selectedColor);
     }
@@ -215,13 +180,8 @@ function LiteBriteCanvas2D({ selectedColor, onColorSelect }: { selectedColor: nu
 
   const handleTouchStart = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
     if (e.cancelable) e.preventDefault();
-    const canvas = canvasRef.current;
-    if (!canvas || e.touches.length === 0) return;
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    const x = Math.floor(((e.touches[0].clientX - rect.left) * scaleX) / PEG_SPACING);
-    const y = Math.floor(((e.touches[0].clientY - rect.top) * scaleY) / PEG_SPACING);
+    if (!canvasRef.current || e.touches.length === 0) return;
+    const { x, y } = getGridCoordinates(e.touches[0].clientX, e.touches[0].clientY, canvasRef.current);
     if (x >= 0 && x < BOARD_WIDTH && y >= 0 && y < BOARD_HEIGHT) {
       setPixel(x, y, selectedColor);
       playPopSound();
@@ -230,21 +190,14 @@ function LiteBriteCanvas2D({ selectedColor, onColorSelect }: { selectedColor: nu
 
   const handleTouchMove = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
     if (e.cancelable) e.preventDefault();
-    const canvas = canvasRef.current;
-    if (!canvas || e.touches.length === 0) return;
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    const x = Math.floor(((e.touches[0].clientX - rect.left) * scaleX) / PEG_SPACING);
-    const y = Math.floor(((e.touches[0].clientY - rect.top) * scaleY) / PEG_SPACING);
+    if (!canvasRef.current || e.touches.length === 0) return;
+    const { x, y } = getGridCoordinates(e.touches[0].clientX, e.touches[0].clientY, canvasRef.current);
     if (x >= 0 && x < BOARD_WIDTH && y >= 0 && y < BOARD_HEIGHT) {
       setPixel(x, y, selectedColor);
     }
   }, [canvasRef, setPixel, selectedColor]);
 
-  const handleClear = useCallback(() => {
-    clearBoard();
-  }, [clearBoard]);
+  const handleClear = useCallback(() => clearBoard(), [clearBoard]);
 
   const handleImageUpload = useCallback(async (file: File) => {
     try {
@@ -306,7 +259,6 @@ function LiteBriteUI({
     if (file) {
       onImageUpload(file);
     }
-    // Reset value so same file can be selected again
     if (e.target) e.target.value = '';
   };
 
@@ -371,17 +323,15 @@ function LiteBriteUI({
 }
 
 export function LiteBrite() {
-  const [selectedColor, setSelectedColor] = useState(1); // Default to red
+  const [selectedColor, setSelectedColor] = useState(1);
   const [useWebGPU, setUseWebGPU] = useState<boolean | null>(null);
 
-  // Check for WebGPU support on mount
   useEffect(() => {
     const checkWebGPU = async () => {
       if (!navigator.gpu) {
         setUseWebGPU(false);
         return;
       }
-
       try {
         const adapter = await navigator.gpu.requestAdapter();
         if (!adapter) {
@@ -393,11 +343,9 @@ export function LiteBrite() {
         setUseWebGPU(false);
       }
     };
-
     checkWebGPU();
   }, []);
 
-  // While checking, show loading
   if (useWebGPU === null) {
     return (
       <div className="litebrite-container">
@@ -414,7 +362,6 @@ export function LiteBrite() {
     );
   }
 
-  // Render appropriate version
   if (useWebGPU) {
     return <LiteBriteWebGPU selectedColor={selectedColor} onColorSelect={setSelectedColor} />;
   }
