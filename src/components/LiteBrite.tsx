@@ -11,6 +11,34 @@ const BOARD_WIDTH = 32;
 const BOARD_HEIGHT = 24;
 const PEG_SPACING = 32;
 
+// Helper function to play a synthesized 'pop' sound
+const playPopSound = () => {
+  // Check for browser compatibility
+  const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+  if (!AudioContext) {
+    console.warn("Web Audio API is not supported in this browser.");
+    return;
+  }
+
+  const ctx = new AudioContext();
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+
+  // A short, sharp pitch drop simulates a "plastic click" sound
+  osc.type = 'triangle'; // Triangle or sine waves sound softer than square
+  osc.frequency.setValueAtTime(800, ctx.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.1);
+
+  gain.gain.setValueAtTime(0.1, ctx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+
+  osc.start(ctx.currentTime);
+  osc.stop(ctx.currentTime + 0.1);
+};
+
 // WebGPU version of the board
 function LiteBriteWebGPU({ selectedColor, onColorSelect }: { selectedColor: number; onColorSelect: (color: number) => void }) {
   const [glowIntensity, setGlowIntensity] = useState(0);
@@ -51,6 +79,7 @@ function LiteBriteWebGPU({ selectedColor, onColorSelect }: { selectedColor: numb
 
     if (x >= 0 && x < BOARD_WIDTH && y >= 0 && y < BOARD_HEIGHT) {
       setPixel(x, y, selectedColor);
+      playPopSound();
     }
   }, [canvasRef, setPixel, selectedColor]);
 
@@ -81,6 +110,7 @@ function LiteBriteWebGPU({ selectedColor, onColorSelect }: { selectedColor: numb
     const y = Math.floor(((e.touches[0].clientY - rect.top) * scaleY) / PEG_SPACING);
     if (x >= 0 && x < BOARD_WIDTH && y >= 0 && y < BOARD_HEIGHT) {
       setPixel(x, y, selectedColor);
+      playPopSound();
     }
   }, [canvasRef, setPixel, selectedColor]);
 
@@ -165,6 +195,7 @@ function LiteBriteCanvas2D({ selectedColor, onColorSelect }: { selectedColor: nu
     const y = Math.floor(((e.clientY - rect.top) * scaleY) / PEG_SPACING);
     if (x >= 0 && x < BOARD_WIDTH && y >= 0 && y < BOARD_HEIGHT) {
       setPixel(x, y, selectedColor);
+      playPopSound();
     }
   }, [canvasRef, setPixel, selectedColor]);
 
@@ -193,6 +224,7 @@ function LiteBriteCanvas2D({ selectedColor, onColorSelect }: { selectedColor: nu
     const y = Math.floor(((e.touches[0].clientY - rect.top) * scaleY) / PEG_SPACING);
     if (x >= 0 && x < BOARD_WIDTH && y >= 0 && y < BOARD_HEIGHT) {
       setPixel(x, y, selectedColor);
+      playPopSound();
     }
   }, [canvasRef, setPixel, selectedColor]);
 
