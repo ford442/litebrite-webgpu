@@ -55,12 +55,13 @@
 }
 
 .color-peg.selected {
-  border-color: #fff;
+  border-color: var(--peg-color);
   transform: scale(1.15);
   box-shadow: 
+    0 0 5px #fff,
+    0 0 10px #fff,
     0 0 20px var(--peg-color),
     0 0 40px var(--peg-color),
-    0 0 5px #fff,
     inset 0 -3px 6px rgba(0, 0, 0, 0.3),
     inset 0 3px 6px rgba(255, 255, 255, 0.3);
 }
@@ -85,9 +86,10 @@
 }
 
 .color-peg.eraser.selected {
-  border-color: #fff;
+  border-color: #aaa;
   box-shadow: 
-    0 0 10px rgba(255, 255, 255, 0.3),
+    0 0 5px #fff,
+    0 0 10px #fff,
     inset 0 0 10px rgba(0, 0, 0, 0.5),
     inset 0 -3px 6px rgba(0, 0, 0, 0.3);
 }
