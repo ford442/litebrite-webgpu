@@ -123,21 +123,36 @@ fn main(@builtin(global_invocation_id) globalId: vec3<u32>) {
 
                     // --- PLASTIC 3D RENDERING LOGIC (UNCHANGED) ---
                     // This logic now correctly operates on the staggered `distToNeighbor`
-                    if (i == 0 && j == 0 && distToNeighbor <= pegRadius) {
-                        // 3D Hemisphere Math (from previous step)
+                        // --- ENHANCED PLASTIC RENDERING ---
                         let relX = f32(x) - neighborCenterX;
                         let relY = f32(y) - neighborCenterY;
+                        
+                        // 1. Calculate Normal for a sphere
                         let z = sqrt(max(0.0, pegRadius * pegRadius - (relX * relX + relY * relY)));
                         let normal = normalize(vec3<f32>(relX, relY, z));
-                        let lightDir = normalize(vec3<f32>(-0.5, -0.8, 1.0));
+                        
+                        // 2. Lighting Vectors
+                        let lightDir = normalize(vec3<f32>(-0.5, -0.8, 1.0)); // Top-left light
                         let viewDir = vec3<f32>(0.0, 0.0, 1.0);
-                        let diff = max(dot(normal, lightDir), 0.0);
+                        
+                        // 3. Inner "Hot Core" Glow (Simulates light source inside peg)
+                        let centerDist = distance(vec2<f32>(0.0, 0.0), vec2<f32>(relX, relY));
+                        let innerGlow = smoothstep(pegRadius, 0.0, centerDist);
+                        let coreColor = mix(pegColor.rgb, vec3<f32>(1.0, 1.0, 1.0), innerGlow * 0.6); // White center
+                        
+                        // 4. Sharp Specular Reflection (Wet/Glossy look)
                         let reflectDir = reflect(-lightDir, normal);
-                        let spec = pow(max(dot(viewDir, reflectDir), 0.0), 32.0);
-                        var solidColor = pegColor.rgb * (0.3 + 0.7 * diff) + vec3<f32>(1.0) * spec * 0.8;
-                        let fresnel = 1.0 - max(dot(normal, viewDir), 0.0);
-                        solidColor += (pegColor.rgb * fresnel * 0.5 * currentGlowIntensity);
-                        solidColor *= currentGlowIntensity;
+                        let specAngle = max(dot(viewDir, reflectDir), 0.0);
+                        let spec = pow(specAngle, 64.0); // Sharper exponent (was 32.0)
+                        
+                        // 5. Fresnel Rim Light (Glowing edges)
+                        let fresnel = pow(1.0 - max(dot(normal, viewDir), 0.0), 3.0);
+                        
+                        // 6. Combine
+                        var solidColor = coreColor * (0.4 + 0.6 * currentGlowIntensity); // Base
+                        solidColor += vec3<f32>(1.0) * spec * 0.9; // Add reflection
+                        solidColor += pegColor.rgb * fresnel * 0.8 * currentGlowIntensity; // Add rim glow
+                        
                         accumulatedLight += solidColor;
                     } else {
                         // Glow / Light Bleed Logic (from previous step)

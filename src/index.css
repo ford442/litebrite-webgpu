@@ -21,10 +21,11 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  /* A subtle vignette background to focus attention on the board */
+  background: radial-gradient(circle at center, #1a1b26 0%, #000000 100%);
 }
 
 button {
   font-family: inherit;
   cursor: pointer;
 }
-
