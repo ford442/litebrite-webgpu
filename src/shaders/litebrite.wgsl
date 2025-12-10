@@ -133,7 +133,9 @@ fn main(@builtin(global_invocation_id) globalId: vec3<u32>) {
                     solidColor += vec3<f32>(1.0) * spec * 0.9;
                     solidColor += pegColor.rgb * fresnel * 0.8 * currentGlowIntensity;
 
-                    accumulatedLight += solidColor;
+                    if distToNeighbor <= pegRadius {
+                        accumulatedLight += solidColor;
+                    }
 
                     // Glow / Light Bleed
                     if distToNeighbor <= glowRadius && distToNeighbor > pegRadius {
