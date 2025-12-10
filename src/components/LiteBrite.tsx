@@ -97,6 +97,8 @@ const getClosestPeg = (
 // WebGPU version of the board
 function LiteBriteWebGPU({ selectedColor, onColorSelect }: { selectedColor: number; onColorSelect: (color: number) => void }) {
   const [glowIntensity, setGlowIntensity] = useState(0);
+  const [ambientBrightness, setAmbientBrightness] = useState(1.0);
+  const [pegBrightness, setPegBrightness] = useState(1.0);
 
   useEffect(() => {
     const startTime = performance.now();
@@ -114,6 +116,8 @@ function LiteBriteWebGPU({ selectedColor, onColorSelect }: { selectedColor: numb
     boardWidth: BOARD_WIDTH,
     boardHeight: BOARD_HEIGHT,
     glowIntensity: glowIntensity,
+    ambientBrightness: ambientBrightness,
+    pegBrightness: pegBrightness,
   });
 
   const handleCanvasClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -178,6 +182,10 @@ function LiteBriteWebGPU({ selectedColor, onColorSelect }: { selectedColor: numb
       subtitle="WebGPU Edition"
       selectedColor={selectedColor}
       onColorSelect={onColorSelect}
+      ambientBrightness={ambientBrightness}
+      setAmbientBrightness={setAmbientBrightness}
+      pegBrightness={pegBrightness}
+      setPegBrightness={setPegBrightness}
       onMouseDown={handleCanvasClick}
       onMouseMove={handleCanvasMove}
       onTouchStart={handleTouchStart}
@@ -191,6 +199,8 @@ function LiteBriteWebGPU({ selectedColor, onColorSelect }: { selectedColor: numb
 // Canvas 2D version of the board (fallback)
 function LiteBriteCanvas2D({ selectedColor, onColorSelect }: { selectedColor: number; onColorSelect: (color: number) => void }) {
   const [glowIntensity, setGlowIntensity] = useState(0);
+  const [ambientBrightness, setAmbientBrightness] = useState(1.0);
+  const [pegBrightness, setPegBrightness] = useState(1.0);
 
   useEffect(() => {
     const startTime = performance.now();
@@ -208,6 +218,8 @@ function LiteBriteCanvas2D({ selectedColor, onColorSelect }: { selectedColor: nu
     boardWidth: BOARD_WIDTH,
     boardHeight: BOARD_HEIGHT,
     glowIntensity: glowIntensity,
+    ambientBrightness: ambientBrightness,
+    pegBrightness: pegBrightness,
   });
 
   const handleCanvasClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -265,6 +277,10 @@ function LiteBriteCanvas2D({ selectedColor, onColorSelect }: { selectedColor: nu
       subtitle="Canvas Edition"
       selectedColor={selectedColor}
       onColorSelect={onColorSelect}
+      ambientBrightness={ambientBrightness}
+      setAmbientBrightness={setAmbientBrightness}
+      pegBrightness={pegBrightness}
+      setPegBrightness={setPegBrightness}
       onMouseDown={handleCanvasClick}
       onMouseMove={handleCanvasMove}
       onTouchStart={handleTouchStart}
@@ -282,6 +298,10 @@ function LiteBriteUI({
   subtitle,
   selectedColor,
   onColorSelect,
+  ambientBrightness,
+  setAmbientBrightness,
+  pegBrightness,
+  setPegBrightness,
   onMouseDown,
   onMouseMove,
   onTouchStart,
@@ -294,6 +314,10 @@ function LiteBriteUI({
   subtitle: string;
   selectedColor: number;
   onColorSelect: (color: number) => void;
+  ambientBrightness: number;
+  setAmbientBrightness: (val: number) => void;
+  pegBrightness: number;
+  setPegBrightness: (val: number) => void;
   onMouseDown: (e: React.MouseEvent<HTMLCanvasElement>) => void;
   onMouseMove: (e: React.MouseEvent<HTMLCanvasElement>) => void;
   onTouchStart: (e: React.TouchEvent<HTMLCanvasElement>) => void;
@@ -346,6 +370,36 @@ function LiteBriteUI({
           selectedColor={selectedColor}
           onColorSelect={onColorSelect}
         />
+
+        <div className="litebrite-sliders" style={{ display: 'flex', gap: '20px', width: '100%', maxWidth: '600px', justifyContent: 'center' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 }}>
+            <label htmlFor="ambient-slider" style={{ color: '#aaa', fontSize: '0.8rem', marginBottom: '5px' }}>Ambient Light</label>
+            <input
+              id="ambient-slider"
+              type="range"
+              min="0"
+              max="2"
+              step="0.1"
+              value={ambientBrightness}
+              onChange={(e) => setAmbientBrightness(parseFloat(e.target.value))}
+              style={{ width: '100%' }}
+            />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 }}>
+            <label htmlFor="peg-slider" style={{ color: '#aaa', fontSize: '0.8rem', marginBottom: '5px' }}>Peg Brightness</label>
+            <input
+              id="peg-slider"
+              type="range"
+              min="0.5"
+              max="3"
+              step="0.1"
+              value={pegBrightness}
+              onChange={(e) => setPegBrightness(parseFloat(e.target.value))}
+              style={{ width: '100%' }}
+            />
+          </div>
+        </div>
+
         <div className="litebrite-actions">
            <button className="litebrite-btn clear-btn" onClick={onClear}>
             Clear Board
