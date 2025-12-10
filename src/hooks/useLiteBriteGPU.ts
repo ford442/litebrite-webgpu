@@ -7,6 +7,8 @@ export interface UseLiteBriteGPUOptions {
   boardWidth: number;
   boardHeight: number;
   glowIntensity?: number;
+  ambientBrightness?: number;
+  pegBrightness?: number;
 }
 
 export interface UseLiteBriteGPUResult {
@@ -24,6 +26,8 @@ export function useLiteBriteGPU({
   boardWidth,
   boardHeight,
   glowIntensity = 1.2,
+  ambientBrightness = 1.0,
+  pegBrightness = 1.0,
 }: UseLiteBriteGPUOptions): UseLiteBriteGPUResult {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [isSupported, setIsSupported] = useState(true);
@@ -136,7 +140,7 @@ export function useLiteBriteGPU({
 
       // Create params uniform buffer
       const paramsBuffer = device.createBuffer({
-        size: 16, // 4 * 4 bytes (width, height, time, glowIntensity)
+        size: 32, // Increased size to accommodate new params (width, height, time, glowIntensity, ambientBrightness, pegBrightness)
         usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
       });
       paramsBufferRef.current = paramsBuffer;
@@ -280,12 +284,14 @@ export function useLiteBriteGPU({
       const time = (performance.now() - startTimeRef.current) / 1000;
 
       // Update params
-      const paramsData = new ArrayBuffer(16);
+      const paramsData = new ArrayBuffer(32);
       const paramsView = new DataView(paramsData);
       paramsView.setUint32(0, pixelWidth, true);
       paramsView.setUint32(4, pixelHeight, true);
       paramsView.setFloat32(8, time, true);
       paramsView.setFloat32(12, glowIntensity, true);
+      paramsView.setFloat32(16, ambientBrightness, true);
+      paramsView.setFloat32(20, pegBrightness, true);
       device.queue.writeBuffer(paramsBuffer, 0, paramsData);
 
       // Update board state - create a copy to ensure we have a proper ArrayBuffer

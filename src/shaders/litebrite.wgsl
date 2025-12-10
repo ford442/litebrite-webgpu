@@ -3,6 +3,8 @@ struct Params {
     height: u32,
     time: f32,
     glowIntensity: f32,
+    ambientBrightness: f32,
+    pegBrightness: f32,
 }
 
 @group(0) @binding(0) var<uniform> params: Params;
@@ -67,13 +69,13 @@ fn main(@builtin(global_invocation_id) globalId: vec3<u32>) {
     let cellCenterY = f32(pegSpacing) / 2.0;
     let distFromCenter = distance(vec2(cellX, cellY), vec2(cellCenterX, cellCenterY));
 
-    var finalColor = vec4<f32>(0.05, 0.05, 0.05, 1.0);
-    let noise = rand(vec2<f32>(f32(x), f32(y))) * 0.03;
+    var finalColor = vec4<f32>(0.05, 0.05, 0.05, 1.0) * params.ambientBrightness;
+    let noise = rand(vec2<f32>(f32(x), f32(y))) * 0.03 * params.ambientBrightness;
     finalColor += vec4(noise, noise, noise, 0.0);
     if distFromCenter <= pegRadius * 0.8 {
         finalColor = mix(finalColor, vec4<f32>(0.0, 0.0, 0.0, 1.0), 0.8);
     } else if distFromCenter <= pegRadius {
-        finalColor = mix(finalColor, vec4<f32>(0.1, 0.1, 0.1, 1.0), 0.5);
+        finalColor = mix(finalColor, vec4<f32>(0.1, 0.1, 0.1, 1.0) * params.ambientBrightness, 0.5);
     }
 
     // --- Light Accumulation (Staggered) ---
@@ -107,7 +109,7 @@ fn main(@builtin(global_invocation_id) globalId: vec3<u32>) {
                                                   vec2(neighborCenterX, neighborCenterY));
 
                     let pulseAmount = sin(params.time * 2.0 + f32(pegIndex) * 0.1) * 0.05 + 0.95;
-                    let currentGlowIntensity = params.glowIntensity * pulseAmount;
+                    let currentGlowIntensity = params.glowIntensity * pulseAmount * params.pegBrightness;
 
                     // --- ENHANCED PLASTIC RENDERING ---
                     let relX = f32(x) - neighborCenterX;
@@ -133,7 +135,9 @@ fn main(@builtin(global_invocation_id) globalId: vec3<u32>) {
                     solidColor += vec3<f32>(1.0) * spec * 0.9;
                     solidColor += pegColor.rgb * fresnel * 0.8 * currentGlowIntensity;
 
-                    accumulatedLight += solidColor;
+                    if distToNeighbor <= pegRadius {
+                        accumulatedLight += solidColor;
+                    }
 
                     // Glow / Light Bleed
                     if distToNeighbor <= glowRadius && distToNeighbor > pegRadius {

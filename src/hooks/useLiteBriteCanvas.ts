@@ -7,6 +7,8 @@ export interface UseLiteBriteCanvasOptions {
   boardWidth: number;
   boardHeight: number;
   glowIntensity?: number;
+  ambientBrightness?: number;
+  pegBrightness?: number;
 }
 
 export interface UseLiteBriteCanvasResult {
@@ -36,6 +38,8 @@ export function useLiteBriteCanvas({
   boardWidth,
   boardHeight,
   glowIntensity = 1.3,
+  ambientBrightness = 1.0,
+  pegBrightness = 1.0,
 }: UseLiteBriteCanvasOptions): UseLiteBriteCanvasResult {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const boardStateRef = useRef<Uint32Array>(new Uint32Array(boardWidth * boardHeight));
@@ -64,8 +68,12 @@ export function useLiteBriteCanvas({
 
       const time = (performance.now() - startTimeRef.current) / 1000;
 
-      // Clear canvas with dark background
-      ctx.fillStyle = '#050505';
+      // Clear canvas with dark background (modulated by ambientBrightness)
+      // We approximate this by overlaying a black rect with varying opacity, or just dimming the fill style.
+      // Simple approach: reduce the component value. 0x05 = 5. 5 * ambient.
+      const bgVal = Math.max(0, Math.min(255, Math.floor(5 * ambientBrightness)));
+      const bgHex = '#' + bgVal.toString(16).padStart(2, '0').repeat(3);
+      ctx.fillStyle = bgHex;
       ctx.fillRect(0, 0, pixelWidth, pixelHeight);
 
       // Draw each peg
@@ -80,7 +88,7 @@ export function useLiteBriteCanvas({
             // Draw glow
             const color = getColorById(colorIndex);
             const pulseAmount = Math.sin(time * 2 + (y * boardWidth + x) * 0.1) * 0.1 + 0.9;
-            const intensity = glowIntensity * pulseAmount;
+            const intensity = glowIntensity * pulseAmount * pegBrightness;
 
             // Outer glow
             const gradient = ctx.createRadialGradient(
@@ -131,7 +139,7 @@ export function useLiteBriteCanvas({
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [boardWidth, boardHeight, pixelWidth, pixelHeight, glowIntensity]);
+  }, [boardWidth, boardHeight, pixelWidth, pixelHeight, glowIntensity, ambientBrightness, pegBrightness]);
 
   const setPixel = useCallback((x: number, y: number, colorIndex: number) => {
     // console.log(`Canvas setPixel: ${x}, ${y}, ${colorIndex}`); // Debug
