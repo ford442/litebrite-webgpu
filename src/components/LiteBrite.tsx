@@ -335,8 +335,21 @@ function LiteBriteUI({
     if (e.target) e.target.value = '';
   };
 
+  const overlayOpacity = 1 - Math.min(ambientBrightness, 1);
+
   return (
     <div className="litebrite-container">
+      <div
+        style={{
+          position: 'fixed',
+          inset: 0,
+          backgroundColor: 'black',
+          pointerEvents: 'none',
+          zIndex: 50,
+          opacity: overlayOpacity,
+          transition: 'opacity 0.1s ease-out'
+        }}
+      />
       <header className="litebrite-header">
         <h1 className="litebrite-title">
           <span className="lite">LITE</span>
@@ -346,7 +359,7 @@ function LiteBriteUI({
       </header>
 
       <div className="litebrite-frame">
-        <div className="litebrite-screen">
+        <div className="litebrite-screen" style={{ position: 'relative', zIndex: 60 }}>
           <canvas
             ref={canvasRef}
             width={BOARD_WIDTH * PEG_SPACING}
